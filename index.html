@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Bro Split Tracker с календарем и статистикой</title>
+  <title>Bro Split Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -437,10 +437,19 @@
 </div>
 
 <script>
+  // Функция для получения локальной даты в формате YYYY-MM-DD
+  function getLocalDateString() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
   // Ключи для LocalStorage
   const LS_STREAK = 'consecutiveDaysCount';
   const LS_LAST_DATE = 'lastTrainingDate';
-  const LS_WORKOUTS = 'workoutsHistory';   // Массив дат тренировок (YYYY-MM-DD)
+  const LS_WORKOUTS = 'workoutsHistory';   // Массив дат тренировок (в формате YYYY-MM-DD)
   const LS_REST_DAYS = 'restDays';         // Массив дат дней отдыха
   const LS_AGG_STATS = 'aggregatedStats';  // Объект: { "Грудь": число, "Спина": число, …, "Отдых": число }
 
@@ -563,7 +572,7 @@
 
   // Обработчик отметки тренировочного дня за сегодня
   markTodayBtn.addEventListener('click', function() {
-    const today = new Date().toISOString().slice(0,10);
+    const today = getLocalDateString();
     if (localStorage.getItem(LS_LAST_DATE) === today || checkIfTodayRest()) {
       trackerMsg.textContent = "Вы уже отметили сегодня либо тренировку, либо отдых!";
       trackerMsg.style.color = "red";
@@ -618,7 +627,7 @@
     updateCalendar();
     updateAggregatedStats();
     
-    // Если общее число тренировочных дней равно 6, очищаем все чекбоксы во всех блоках
+    // Если число тренировочных дней равно 6, очищаем все чекбоксы во всех блоках
     if (workoutsHistory.length === 6) {
       document.querySelectorAll('.exercise-checkbox').forEach(function(cb) {
         cb.checked = false;
@@ -632,14 +641,14 @@
 
   // Функция проверки, отмечён ли сегодня день отдыха
   function checkIfTodayRest() {
-    const today = new Date().toISOString().slice(0,10);
+    const today = getLocalDateString();
     const restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
     return restDays.includes(today);
   }
 
   // Обработчик отметки дня отдыха за сегодня
   markRestBtn.addEventListener('click', function() {
-    const today = new Date().toISOString().slice(0,10);
+    const today = getLocalDateString();
     if (localStorage.getItem(LS_LAST_DATE) === today || checkIfTodayRest()) {
       trackerMsg.textContent = "Вы уже отметили сегодня либо тренировку, либо отдых!";
       trackerMsg.style.color = "red";
@@ -679,7 +688,7 @@
   // Обработчик для кнопки "Сбросить за сегодня"
   resetTodayBtn.addEventListener('click', function() {
     if (confirm("Вы уверены, что хотите сбросить запись за сегодня? Это действие нельзя отменить!")) {
-      const today = new Date().toISOString().slice(0,10);
+      const today = getLocalDateString();
       let workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
       let restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
       let aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
