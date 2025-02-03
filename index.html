@@ -409,7 +409,7 @@
   const app = initializeApp(firebaseConfig);
   const dbModule = getDatabase(app);
 
-  // Функция для получения локальной даты в формате YYYY-MM-DD
+  // Функция для получения локальной даты в формате YYYY-MM-DD (локальное время)
   function getLocalDateString() {
     return new Date().toLocaleDateString('en-CA');
   }
@@ -433,7 +433,7 @@
   const calendarDiv = document.getElementById('calendar');
   const aggregatedStatsList = document.getElementById('aggregatedStatsList');
 
-  // Функция обновления UI для выбранного дня (для каждого дня, основываясь на сохранённых данных)
+  // Функция обновления UI для выбранного дня (восстанавливаем состояние чекбоксов)
   function updateDayBlockUI(day) {
     const dayBlock = document.querySelector(`.day[data-day="${day}"]`);
     if (dayBlock) {
@@ -531,7 +531,7 @@
     }
   }
 
-  // Обработчики для чекбоксов: сохраняем состояние чекбоксов в LS_DAY_STATES
+  // Обработчики для чекбоксов: сохраняем состояние чекбоксов и вызываем сохранение в Firebase
   document.querySelectorAll('.exercise-checkbox').forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
       const dayDiv = this.closest('.day');
@@ -544,6 +544,8 @@
       let dayStates = JSON.parse(localStorage.getItem(LS_DAY_STATES)) || {};
       dayStates[day] = states;
       localStorage.setItem(LS_DAY_STATES, JSON.stringify(dayStates));
+      // Сохраняем сразу изменения в Firebase
+      saveProgress();
     });
   });
 
@@ -563,7 +565,7 @@
       trackerMsg.style.color = "red";
       return;
     }
-    // Находим первый день, в котором хотя бы один чекбокс отмечен
+    // Находим первый день, в котором отмечены хотя бы какие-либо упражнения
     const allDays = document.querySelectorAll('.day');
     let qualifiedDay = null;
     allDays.forEach(day => {
@@ -721,7 +723,6 @@
           localStorage.setItem(LS_AGG_STATS, JSON.stringify(data.aggStats || {}));
           if (data.dayStates) {
             localStorage.setItem(LS_DAY_STATES, JSON.stringify(data.dayStates));
-            // Для каждого дня, для которого сохранено состояние, обновляем UI
             Object.keys(data.dayStates).forEach(day => {
               updateDayBlockUI(day);
             });
