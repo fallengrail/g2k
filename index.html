@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Bro Split Tracker с синхронизацией через Firebase</title>
+  <title>Bro Split Tracker с Firebase</title>
   <style>
     /* Стили сайта */
     body {
@@ -130,7 +130,7 @@
 <div class="section" id="streakTracker">
   <h2>Дней подряд: <span id="streakCount">0</span></h2>
   <h3>Всего тренировок: <span id="totalWorkouts">0</span></h3>
-  <!-- Кнопки для отметки (один раз в день) -->
+  <!-- Кнопки для ежедневной отметки -->
   <button id="markToday">Я пошёл на тренировку сегодня</button>
   <button id="markRest">Сегодня не тренируюсь</button>
   <button id="resetToday">Сбросить запись за сегодня</button>
@@ -389,10 +389,28 @@
   </div>
 </div>
 
+<!-- Скрипт загружается после всего DOM -->
 <script type="module">
-  // Этот скрипт загружается после того, как DOM полностью построен
+  // Импорт необходимых функций из Firebase SDK
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
+  import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
 
-  // Функция, возвращающая локальную дату в формате YYYY-MM-DD (локальное время)
+  // Инициализация Firebase с конфигурацией
+  const firebaseConfig = {
+    apiKey: "AIzaSyCWoT3oFEXAj_ssnqD0n3nWyujBD-0WKxw",
+    authDomain: "g2k6-efdd3.firebaseapp.com",
+    databaseURL: "https://g2k6-efdd3-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "g2k6-efdd3",
+    storageBucket: "g2k6-efdd3.appspot.com",
+    messagingSenderId: "186019607524",
+    appId: "1:186019607524:web:22e670620a8e63e341cdf1",
+    measurementId: "G-QQMKHVJL7N"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const dbModule = getDatabase(app);
+
+  // Функция для получения локальной даты в формате YYYY-MM-DD (локальное время)
   function getLocalDateString() {
     return new Date().toLocaleDateString('en-CA');
   }
@@ -652,7 +670,6 @@
     const workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
     const streak = localStorage.getItem(LS_STREAK) || 0;
     const aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
-    // Сохраняем данные в узле "progress" в Realtime Database
     set(ref(dbModule, "progress"), {
       workoutsHistory: workoutsHistory,
       streak: streak,
