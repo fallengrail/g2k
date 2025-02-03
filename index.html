@@ -45,11 +45,10 @@
       justify-content: space-between;
       cursor: pointer;
       padding: 5px;
-      background-color: #fff; /* Белый фон по умолчанию */
+      background-color: #fff; /* белый фон по умолчанию */
       border-radius: 4px;
       color: #000;
     }
-    /* Если блок выполнен, заголовок становится зеленым */
     .day.completed .day-header {
       background-color: #d4edda;
     }
@@ -59,13 +58,11 @@
       font-size: 24px;
       transition: transform 0.3s;
       color: currentColor;
-      /* По умолчанию блок свернут – кнопка повёрнута влево */
       transform: rotate(-90deg);
     }
     .day:not(.collapsed) .toggle-btn {
       transform: rotate(90deg);
     }
-    /* По умолчанию блоки свернуты */
     .day.collapsed .exercises {
       display: none;
     }
@@ -92,7 +89,7 @@
     button {
       cursor: pointer;
     }
-    /* Блок трекера: стрик, число тренировок и кнопки */
+    /* Блок трекера */
     #streakTracker {
       text-align: center;
     }
@@ -101,7 +98,7 @@
       margin: 10px 5px;
       font-size: 16px;
     }
-    /* Компактный мини-календарь на полгода */
+    /* Мини-календарь */
     #calendarSection {
       text-align: center;
     }
@@ -135,12 +132,10 @@
       font-size: 10px;
       line-height: 1.2;
     }
-    /* Дни тренировок: зеленый фон */
     .calendar-cell.done {
       background-color: #d4edda;
       border-color: #c3e6cb;
     }
-    /* Дни отдыха: голубой фон */
     .calendar-cell.rest {
       background-color: #add8e6;
       border-color: #87cefa;
@@ -150,7 +145,7 @@
       font-size: 10px;
       text-align: center;
     }
-    /* Общая статистика по группам мышц */
+    /* Общая статистика */
     #aggregatedStatsSection {
       text-align: center;
     }
@@ -170,7 +165,7 @@
 
 <h1>Bro Split Tracker</h1>
 
-<!-- Блок трекера: стрик, число тренировок и кнопки управления -->
+<!-- Блок трекера -->
 <div class="section" id="streakTracker">
   <h2>Дней подряд: <span id="streakCount">0</span></h2>
   <h3>Всего тренировок: <span id="totalWorkouts">0</span></h3>
@@ -180,19 +175,19 @@
   <p id="trackerMsg" style="color: green;"></p>
 </div>
 
-<!-- Компактный мини-календарь на полгода -->
+<!-- Календарь -->
 <div class="section" id="calendarSection">
   <h3>Календарь (полгода)</h3>
   <div id="calendar"></div>
 </div>
 
-<!-- Общая статистика по группам мышц -->
+<!-- Статистика по группам мышц -->
 <div class="section" id="aggregatedStatsSection">
   <h3>Общая статистика по группам мышц</h3>
   <ul id="aggregatedStatsList"></ul>
 </div>
 
-<!-- Блок с тренировочными днями -->
+<!-- Тренировочные дни -->
 <div id="tracker">
   <!-- День 1: Грудь -->
   <div class="day collapsed" data-day="1">
@@ -437,19 +432,19 @@
 </div>
 
 <script>
-  // Функция для получения локальной даты в формате YYYY-MM-DD
+  // Функция, возвращающая локальную дату в формате YYYY-MM-DD
   function getLocalDateString() {
     const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    // Используем toLocaleDateString с русской локалью для получения DD.MM.YYYY
+    const localDate = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const parts = localDate.split('.');
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
 
   // Ключи для LocalStorage
   const LS_STREAK = 'consecutiveDaysCount';
   const LS_LAST_DATE = 'lastTrainingDate';
-  const LS_WORKOUTS = 'workoutsHistory';   // Массив дат тренировок (в формате YYYY-MM-DD)
+  const LS_WORKOUTS = 'workoutsHistory';   // Массив дат тренировок (YYYY-MM-DD)
   const LS_REST_DAYS = 'restDays';         // Массив дат дней отдыха
   const LS_AGG_STATS = 'aggregatedStats';  // Объект: { "Грудь": число, "Спина": число, …, "Отдых": число }
 
