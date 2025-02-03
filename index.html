@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Bro Split Tracker</title>
+  <title>Bro Split Tracker с синхронизацией через Firebase</title>
   <style>
     /* Стили сайта */
     body {
@@ -122,321 +122,570 @@
     }
     #aggregatedStatsSection li { margin-bottom: 5px; }
   </style>
-  <!-- Подключаем Firebase SDK через CDN (используем модульный стиль) -->
-  <script type="module">
-    // Импорт необходимых функций из Firebase SDK
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js";
-    import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/11.2.0/firebase-database.js";
+</head>
+<body>
 
-    // Ваши данные конфигурации Firebase – замените их на свои реальные данные, полученные из консоли Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyCWoT3oFEXAj_ssnqD0n3nWyujBD-0WKxw",
-      authDomain: "g2k6-efdd3.firebaseapp.com",
-      databaseURL: "https://g2k6-efdd3-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "g2k6-efdd3",
-      storageBucket: "g2k6-efdd3.firebasestorage.app",
-      messagingSenderId: "186019607524",
-      appId: "1:186019607524:web:22e670620a8e63e341cdf1",
-      measurementId: "G-QQMKHVJL7N"
-    };
+<h1>Bro Split Tracker</h1>
 
-    // Инициализация Firebase и получение ссылки на базу данных
-    const app = initializeApp(firebaseConfig);
-    const dbModule = getDatabase(app);
+<div class="section" id="streakTracker">
+  <h2>Дней подряд: <span id="streakCount">0</span></h2>
+  <h3>Всего тренировок: <span id="totalWorkouts">0</span></h3>
+  <!-- Кнопки для отметки (один раз в день) -->
+  <button id="markToday">Я пошёл на тренировку сегодня</button>
+  <button id="markRest">Сегодня не тренируюсь</button>
+  <button id="resetToday">Сбросить запись за сегодня</button>
+  <p id="trackerMsg" style="color: green;"></p>
+</div>
 
-    // Функция, возвращающая локальную дату в формате YYYY-MM-DD (локальное время)
-    function getLocalDateString() {
-      return new Date().toLocaleDateString('en-CA');
-    }
+<div class="section" id="calendarSection">
+  <h3>Календарь (полгода)</h3>
+  <div id="calendar"></div>
+</div>
 
-    // Ключи для localStorage
-    const LS_STREAK = 'consecutiveDaysCount';
-    const LS_LAST_DATE = 'lastTrainingDate';
-    const LS_WORKOUTS = 'workoutsHistory';
-    const LS_REST_DAYS = 'restDays';
-    const LS_AGG_STATS = 'aggregatedStats';
+<div class="section" id="aggregatedStatsSection">
+  <h3>Общая статистика по группам мышц</h3>
+  <ul id="aggregatedStatsList"></ul>
+</div>
 
-    // Элементы управления
-    const streakCountElem = document.getElementById('streakCount');
-    const totalWorkoutsElem = document.getElementById('totalWorkouts');
-    const markTodayBtn = document.getElementById('markToday');
-    const markRestBtn = document.getElementById('markRest');
-    const resetTodayBtn = document.getElementById('resetToday');
-    const trackerMsg = document.getElementById('trackerMsg');
-    const calendarDiv = document.getElementById('calendar');
-    const aggregatedStatsList = document.getElementById('aggregatedStatsList');
+<div id="tracker">
+  <!-- День 1: Грудь -->
+  <div class="day collapsed" data-day="1">
+    <div class="day-header">
+      <h2>День 1: Грудь</h2>
+      <button class="toggle-btn">&#8250;</button>
+    </div>
+    <div class="exercises">
+      <ul>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Жим+штанги+лёжа" target="_blank">Жим штанги лёжа</a> – 4 подхода по 6–10 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Жим+гантелей+на+наклонной+скамье" target="_blank">Жим гантелей на наклонной скамье</a> – 3 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Разведения+гантелей+на+горизонтальной+скамье" target="_blank">Разведения гантелей на горизонтальной скамье</a> – 3 подхода по 10–15 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Кроссоверы" target="_blank">Кроссоверы</a> – 3 подхода по 12–15 повторений
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
 
-    function updateStreakDisplay() {
-      const streak = localStorage.getItem(LS_STREAK) || 0;
-      streakCountElem.textContent = streak;
-      const workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
-      totalWorkoutsElem.textContent = workoutsHistory.length;
-    }
+  <!-- День 2: Спина -->
+  <div class="day collapsed" data-day="2">
+    <div class="day-header">
+      <h2>День 2: Спина</h2>
+      <button class="toggle-btn">&#8250;</button>
+    </div>
+    <div class="exercises">
+      <ul>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Подтягивания+широким+хватом" target="_blank">Подтягивания (широким хватом)</a> или тяга верхнего блока – 4 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Тяга+штанги+в+наклоне" target="_blank">Тяга штанги в наклоне</a> – 3 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Тяга+горизонтального+блока" target="_blank">Тяга горизонтального блока</a> – 3 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Гиперэкстензии" target="_blank">Гиперэкстензии</a> – 3 подхода по 12–15 повторений
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
 
-    function updateCalendar() {
-      calendarDiv.innerHTML = "";
-      const now = new Date();
-      const startYear = now.getFullYear();
-      const startMonth = now.getMonth();
-      const workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
-      const restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
+  <!-- День 3: Ноги -->
+  <div class="day collapsed" data-day="3">
+    <div class="day-header">
+      <h2>День 3: Ноги</h2>
+      <button class="toggle-btn">&#8250;</button>
+    </div>
+    <div class="exercises">
+      <ul>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Приседания+со+штангой" target="_blank">Приседания со штангой</a> – 4 подхода по 6–10 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Жим+ногами" target="_blank">Жим ногами</a> – 3 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Выпады+с+гантелями" target="_blank">Выпады с гантелями</a> – 3 подхода по 10–12 повторений (на каждую ногу)
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Сгибание+ног+лёжа" target="_blank">Сгибание ног лёжа</a> – 3 подхода по 10–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Разгибание+ног" target="_blank">Разгибание ног</a> – 3 подхода по 10–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Подъёмы+на+носки" target="_blank">Подъёмы на носки (икры)</a> – 3 подхода по 12–15 повторений
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- День 4: Плечи -->
+  <div class="day collapsed" data-day="4">
+    <div class="day-header">
+      <h2>День 4: Плечи</h2>
+      <button class="toggle-btn">&#8250;</button>
+    </div>
+    <div class="exercises">
+      <ul>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Жим+над+головой" target="_blank">Жим штанги или гантелей над головой</a> – 4 подхода по 6–10 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Разведения+гантелей+в+стороны" target="_blank">Разведения гантелей в стороны</a> – 3 подхода по 10–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Передние+подъёмы+гантелей" target="_blank">Передние подъёмы гантелей</a> – 3 подхода по 10–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Обратные+разведения+для+задней+дельты" target="_blank">Обратные разведения для задней дельты</a> – 3 подхода по 10–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Тяга+штанги+к+подбородку" target="_blank">Тяга штанги к подбородку</a> – 3 подхода по 8–10 повторений (опционально)
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- День 5: Руки (бицепс и трицепс) -->
+  <div class="day collapsed" data-day="5">
+    <div class="day-header">
+      <h2>День 5: Руки (бицепс и трицепс)</h2>
+      <button class="toggle-btn">&#8250;</button>
+    </div>
+    <div class="exercises">
+      <ul>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Сгибания+штанги+на+бицепс" target="_blank">Сгибания штанги на бицепс</a> – 3 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Сгибания+рук+с+гантелями" target="_blank">Сгибания рук с гантелями</a> – 3 подхода по 10–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Французский+жим" target="_blank">Французский жим</a> – 3 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Жим+узким+хватом+лёжа" target="_blank">Жим узким хватом лёжа</a> – 3 подхода по 8–12 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Отжимания+на+брусьях" target="_blank">Отжимания на брусьях</a> – 3 подхода до отказа
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- День 6: Корпус + Дополнительные упражнения и кардио -->
+  <div class="day collapsed" data-day="6">
+    <div class="day-header">
+      <h2>День 6: Корпус + Дополнительные упражнения и кардио</h2>
+      <button class="toggle-btn">&#8250;</button>
+    </div>
+    <div class="exercises">
+      <ul>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Скручивания" target="_blank">Скручивания</a> – 3 подхода по 15–20 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Подъёмы+ног+в+висе+или+лежа" target="_blank">Подъёмы ног в висе или лёжа</a> – 3 подхода по 12–15 повторений
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Планка" target="_blank">Планка</a> – 3 подхода по 45–60 секунд
+          </label>
+        </li>
+        <li>
+          <label>
+            <input type="checkbox" class="exercise-checkbox">
+            <a href="https://www.google.com/search?q=Лёгкое+кардио" target="_blank">Лёгкое кардио</a> – 15–20 минут (бег, эллипс или велосипед)
+          </label>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  // Этот скрипт загружается после того, как DOM полностью построен
+
+  // Функция, возвращающая локальную дату в формате YYYY-MM-DD (локальное время)
+  function getLocalDateString() {
+    return new Date().toLocaleDateString('en-CA');
+  }
+
+  // Ключи для localStorage
+  const LS_STREAK = 'consecutiveDaysCount';
+  const LS_LAST_DATE = 'lastTrainingDate';
+  const LS_WORKOUTS = 'workoutsHistory';
+  const LS_REST_DAYS = 'restDays';
+  const LS_AGG_STATS = 'aggregatedStats';
+
+  // Элементы управления
+  const streakCountElem = document.getElementById('streakCount');
+  const totalWorkoutsElem = document.getElementById('totalWorkouts');
+  const markTodayBtn = document.getElementById('markToday');
+  const markRestBtn = document.getElementById('markRest');
+  const resetTodayBtn = document.getElementById('resetToday');
+  const trackerMsg = document.getElementById('trackerMsg');
+  const calendarDiv = document.getElementById('calendar');
+  const aggregatedStatsList = document.getElementById('aggregatedStatsList');
+
+  function updateStreakDisplay() {
+    const streak = localStorage.getItem(LS_STREAK) || 0;
+    streakCountElem.textContent = streak;
+    const workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
+    totalWorkoutsElem.textContent = workoutsHistory.length;
+  }
+
+  function updateCalendar() {
+    calendarDiv.innerHTML = "";
+    const now = new Date();
+    const startYear = now.getFullYear();
+    const startMonth = now.getMonth();
+    const workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
+    const restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
+    
+    for (let m = 0; m < 6; m++) {
+      let month = startMonth + m;
+      let year = startYear;
+      if (month > 11) { month = month % 12; year += 1; }
+      const monthContainer = document.createElement('div');
+      monthContainer.className = 'month-calendar';
+      const monthName = new Date(year, month).toLocaleString('ru-RU', { month: 'short' });
+      const header = document.createElement('div');
+      header.className = 'month-header';
+      header.textContent = `${monthName} ${year}`;
+      monthContainer.appendChild(header);
       
-      for (let m = 0; m < 6; m++) {
-        let month = startMonth + m;
-        let year = startYear;
-        if (month > 11) { month = month % 12; year += 1; }
-        const monthContainer = document.createElement('div');
-        monthContainer.className = 'month-calendar';
-        const monthName = new Date(year, month).toLocaleString('ru-RU', { month: 'short' });
-        const header = document.createElement('div');
-        header.className = 'month-header';
-        header.textContent = `${monthName} ${year}`;
-        monthContainer.appendChild(header);
-        
-        const grid = document.createElement('div');
-        grid.className = 'calendar-grid';
-        const weekdays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-        weekdays.forEach(dayName => {
-          const cell = document.createElement('div');
-          cell.className = 'calendar-cell weekday';
-          cell.textContent = dayName;
-          grid.appendChild(cell);
-        });
-        
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-        let firstDay = new Date(year, month, 1).getDay();
-        firstDay = firstDay === 0 ? 6 : firstDay - 1;
-        for (let i = 0; i < firstDay; i++) {
-          const emptyCell = document.createElement('div');
-          emptyCell.className = 'calendar-cell';
-          grid.appendChild(emptyCell);
-        }
-        for (let day = 1; day <= daysInMonth; day++) {
-          const cell = document.createElement('div');
-          cell.className = 'calendar-cell';
-          cell.textContent = day;
-          const dateStr = new Date(year, month, day).toLocaleDateString('en-CA');
-          if (workoutsHistory.includes(dateStr)) { cell.classList.add('done'); }
-          if (restDays.includes(dateStr)) { cell.classList.add('rest'); }
-          grid.appendChild(cell);
-        }
-        monthContainer.appendChild(grid);
-        calendarDiv.appendChild(monthContainer);
-      }
-    }
-
-    function updateAggregatedStats() {
-      aggregatedStatsList.innerHTML = "";
-      const aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
-      if (Object.keys(aggStats).length === 0) {
-        const li = document.createElement('li');
-        li.textContent = "Нет данных по группам мышц.";
-        aggregatedStatsList.appendChild(li);
-        return;
-      }
-      for (const group in aggStats) {
-        const li = document.createElement('li');
-        li.textContent = `${group} – ${aggStats[group]}`;
-        aggregatedStatsList.appendChild(li);
-      }
-    }
-
-    document.querySelectorAll('.exercise-checkbox').forEach(function(checkbox) {
-      checkbox.addEventListener('change', function() {
-        const dayDiv = this.closest('.day');
-        const checkboxes = dayDiv.querySelectorAll('.exercise-checkbox');
-        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-        if (anyChecked) { dayDiv.classList.add('completed'); }
-        else { dayDiv.classList.remove('completed'); }
+      const grid = document.createElement('div');
+      grid.className = 'calendar-grid';
+      const weekdays = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+      weekdays.forEach(dayName => {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell weekday';
+        cell.textContent = dayName;
+        grid.appendChild(cell);
       });
-    });
+      
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let firstDay = new Date(year, month, 1).getDay();
+      firstDay = firstDay === 0 ? 6 : firstDay - 1;
+      for (let i = 0; i < firstDay; i++) {
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'calendar-cell';
+        grid.appendChild(emptyCell);
+      }
+      for (let day = 1; day <= daysInMonth; day++) {
+        const cell = document.createElement('div');
+        cell.className = 'calendar-cell';
+        cell.textContent = day;
+        const dateStr = new Date(year, month, day).toLocaleDateString('en-CA');
+        if (workoutsHistory.includes(dateStr)) { cell.classList.add('done'); }
+        if (restDays.includes(dateStr)) { cell.classList.add('rest'); }
+        grid.appendChild(cell);
+      }
+      monthContainer.appendChild(grid);
+      calendarDiv.appendChild(monthContainer);
+    }
+  }
 
-    document.querySelectorAll('.day-header').forEach(function(header) {
-      header.addEventListener('click', function() {
-        const dayDiv = header.closest('.day');
-        dayDiv.classList.toggle('collapsed');
+  function updateAggregatedStats() {
+    aggregatedStatsList.innerHTML = "";
+    const aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
+    if (Object.keys(aggStats).length === 0) {
+      const li = document.createElement('li');
+      li.textContent = "Нет данных по группам мышц.";
+      aggregatedStatsList.appendChild(li);
+      return;
+    }
+    for (const group in aggStats) {
+      const li = document.createElement('li');
+      li.textContent = `${group} – ${aggStats[group]}`;
+      aggregatedStatsList.appendChild(li);
+    }
+  }
+
+  document.querySelectorAll('.exercise-checkbox').forEach(function(checkbox) {
+    checkbox.addEventListener('change', function() {
+      const dayDiv = this.closest('.day');
+      const checkboxes = dayDiv.querySelectorAll('.exercise-checkbox');
+      const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+      if (anyChecked) { dayDiv.classList.add('completed'); }
+      else { dayDiv.classList.remove('completed'); }
+    });
+  });
+
+  document.querySelectorAll('.day-header').forEach(function(header) {
+    header.addEventListener('click', function() {
+      const dayDiv = header.closest('.day');
+      dayDiv.classList.toggle('collapsed');
+    });
+  });
+
+  markTodayBtn.addEventListener('click', function() {
+    const today = getLocalDateString();
+    if (localStorage.getItem(LS_LAST_DATE) === today || checkIfTodayRest()) {
+      trackerMsg.textContent = "Вы уже отметили сегодня тренировку или отсутствие тренировки!";
+      trackerMsg.style.color = "red";
+      return;
+    }
+    const allDays = document.querySelectorAll('.day');
+    let qualifiedDay = null;
+    allDays.forEach(day => {
+      const checkedCount = day.querySelectorAll('.exercise-checkbox:checked').length;
+      if (!qualifiedDay && checkedCount > 0) { qualifiedDay = day; }
+    });
+    if (!qualifiedDay) {
+      trackerMsg.textContent = "Отметьте хотя бы одно упражнение в одном из блоков!";
+      trackerMsg.style.color = "red";
+      return;
+    }
+    const dayName = qualifiedDay.querySelector('.day-header h2').textContent.trim();
+    
+    const lastDate = localStorage.getItem(LS_LAST_DATE);
+    let streak = parseInt(localStorage.getItem(LS_STREAK)) || 0;
+    if (lastDate) {
+      const yesterday = new Date();
+      yesterday.setDate(new Date().getDate() - 1);
+      const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+      streak = (lastDate === yesterdayStr) ? streak + 1 : 1;
+    } else { streak = 1; }
+    localStorage.setItem(LS_STREAK, streak);
+    localStorage.setItem(LS_LAST_DATE, today);
+    
+    let workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
+    if (!workoutsHistory.includes(today)) {
+      workoutsHistory.push(today);
+      localStorage.setItem(LS_WORKOUTS, JSON.stringify(workoutsHistory));
+    }
+    
+    let groupName = dayName;
+    if (dayName.indexOf(':') !== -1) { groupName = dayName.split(':')[1].trim(); }
+    let aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
+    aggStats[groupName] = (aggStats[groupName] || 0) + 1;
+    localStorage.setItem(LS_AGG_STATS, JSON.stringify(aggStats));
+    
+    updateStreakDisplay();
+    trackerMsg.textContent = `Тренировка (${dayName}) отмечена на сегодня!`;
+    trackerMsg.style.color = "green";
+    
+    updateCalendar();
+    updateAggregatedStats();
+    
+    if (workoutsHistory.length === 6) {
+      document.querySelectorAll('.exercise-checkbox').forEach(function(cb) {
+        cb.checked = false;
+        cb.disabled = false;
       });
-    });
-
-    markTodayBtn.addEventListener('click', function() {
-      const today = getLocalDateString();
-      if (localStorage.getItem(LS_LAST_DATE) === today || checkIfTodayRest()) {
-        trackerMsg.textContent = "Вы уже отметили сегодня тренировку или отсутствие тренировки!";
-        trackerMsg.style.color = "red";
-        return;
-      }
-      const allDays = document.querySelectorAll('.day');
-      let qualifiedDay = null;
-      allDays.forEach(day => {
-        const checkedCount = day.querySelectorAll('.exercise-checkbox:checked').length;
-        if (!qualifiedDay && checkedCount > 0) { qualifiedDay = day; }
+      document.querySelectorAll('.day').forEach(function(day) {
+        day.classList.remove('completed');
       });
-      if (!qualifiedDay) {
-        trackerMsg.textContent = "Отметьте хотя бы одно упражнение в одном из блоков!";
-        trackerMsg.style.color = "red";
-        return;
-      }
-      const dayName = qualifiedDay.querySelector('.day-header h2').textContent.trim();
-      
-      const lastDate = localStorage.getItem(LS_LAST_DATE);
-      let streak = parseInt(localStorage.getItem(LS_STREAK)) || 0;
-      if (lastDate) {
-        const yesterday = new Date();
-        yesterday.setDate(new Date().getDate() - 1);
-        const yesterdayStr = yesterday.toLocaleDateString('en-CA');
-        streak = (lastDate === yesterdayStr) ? streak + 1 : 1;
-      } else { streak = 1; }
-      localStorage.setItem(LS_STREAK, streak);
-      localStorage.setItem(LS_LAST_DATE, today);
-      
-      let workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
-      if (!workoutsHistory.includes(today)) {
-        workoutsHistory.push(today);
-        localStorage.setItem(LS_WORKOUTS, JSON.stringify(workoutsHistory));
-      }
-      
-      let groupName = dayName;
-      if (dayName.indexOf(':') !== -1) { groupName = dayName.split(':')[1].trim(); }
-      let aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
-      aggStats[groupName] = (aggStats[groupName] || 0) + 1;
-      localStorage.setItem(LS_AGG_STATS, JSON.stringify(aggStats));
-      
-      updateStreakDisplay();
-      trackerMsg.textContent = `Тренировка (${dayName}) отмечена на сегодня!`;
-      trackerMsg.style.color = "green";
-      
-      updateCalendar();
-      updateAggregatedStats();
-      
-      if (workoutsHistory.length === 6) {
-        document.querySelectorAll('.exercise-checkbox').forEach(function(cb) {
-          cb.checked = false;
-          cb.disabled = false;
-        });
-        document.querySelectorAll('.day').forEach(function(day) {
-          day.classList.remove('completed');
-        });
-      }
-      saveProgress();
-    });
-
-    function checkIfTodayRest() {
-      const today = getLocalDateString();
-      const restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
-      return restDays.includes(today);
     }
+    saveProgress();
+  });
 
-    markRestBtn.addEventListener('click', function() {
-      const today = getLocalDateString();
-      if (localStorage.getItem(LS_LAST_DATE) === today || checkIfTodayRest()) {
-        trackerMsg.textContent = "Вы уже отметили сегодня тренировку или отсутствие тренировки!";
-        trackerMsg.style.color = "red";
-        return;
-      }
-      const lastDate = localStorage.getItem(LS_LAST_DATE);
-      let streak = parseInt(localStorage.getItem(LS_STREAK)) || 0;
-      if (lastDate) {
-        const yesterday = new Date();
-        yesterday.setDate(new Date().getDate() - 1);
-        const yesterdayStr = yesterday.toLocaleDateString('en-CA');
-        streak = (lastDate === yesterdayStr) ? streak + 1 : 1;
-      } else { streak = 1; }
-      localStorage.setItem(LS_STREAK, streak);
-      localStorage.setItem(LS_LAST_DATE, today);
-      
-      let restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
-      if (!restDays.includes(today)) {
-        restDays.push(today);
-        localStorage.setItem(LS_REST_DAYS, JSON.stringify(restDays));
-      }
-      
-      let aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
-      aggStats["Отдых"] = (aggStats["Отдых"] || 0) + 1;
-      localStorage.setItem(LS_AGG_STATS, JSON.stringify(aggStats));
-      
-      trackerMsg.textContent = "Сегодня не тренируюсь!";
-      trackerMsg.style.color = "blue";
-      
-      updateStreakDisplay();
-      updateCalendar();
-      updateAggregatedStats();
-      saveProgress();
-    });
+  function checkIfTodayRest() {
+    const today = getLocalDateString();
+    const restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
+    return restDays.includes(today);
+  }
 
-    resetTodayBtn.addEventListener('click', function() {
-      if (confirm("Вы уверены, что хотите сбросить запись за сегодня? Это действие нельзя отменить!")) {
-        const today = getLocalDateString();
-        let workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
-        let restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
-        let aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
-        
-        if (workoutsHistory.includes(today)) {
-          for (let group in aggStats) {
-            if (group !== "Отдых" && aggStats[group] > 0) {
-              aggStats[group]--;
-              break;
-            }
-          }
-          workoutsHistory = workoutsHistory.filter(date => date !== today);
-          localStorage.setItem(LS_WORKOUTS, JSON.stringify(workoutsHistory));
-        } else if (restDays.includes(today)) {
-          restDays = restDays.filter(date => date !== today);
-          localStorage.setItem(LS_REST_DAYS, JSON.stringify(restDays));
-          if (aggStats["Отдых"]) {
-            aggStats["Отдых"] = Math.max(aggStats["Отдых"] - 1, 0);
-          }
-        } else {
-          alert("Запись за сегодня отсутствует.");
-          return;
-        }
-        localStorage.setItem(LS_AGG_STATS, JSON.stringify(aggStats));
-        localStorage.removeItem(LS_LAST_DATE);
-        trackerMsg.textContent = "Запись за сегодня сброшена.";
-        trackerMsg.style.color = "orange";
-        updateStreakDisplay();
-        updateCalendar();
-        updateAggregatedStats();
-        saveProgress();
-      }
-    });
-
-    function saveProgress() {
-      const workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
-      const streak = localStorage.getItem(LS_STREAK) || 0;
-      const aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
-      set(ref(dbModule, "progress"), {
-        workoutsHistory: workoutsHistory,
-        streak: streak,
-        aggStats: aggStats
-      })
-      .then(() => { console.log("Прогресс успешно сохранён в Realtime Database"); })
-      .catch((error) => { console.error("Ошибка при сохранении прогресса: ", error); });
+  markRestBtn.addEventListener('click', function() {
+    const today = getLocalDateString();
+    if (localStorage.getItem(LS_LAST_DATE) === today || checkIfTodayRest()) {
+      trackerMsg.textContent = "Вы уже отметили сегодня тренировку или отсутствие тренировки!";
+      trackerMsg.style.color = "red";
+      return;
     }
-
-    function loadProgress() {
-      get(child(ref(dbModule), "progress"))
-        .then((snapshot) => {
-          if (snapshot.exists()) {
-            const data = snapshot.val();
-            localStorage.setItem(LS_WORKOUTS, JSON.stringify(data.workoutsHistory || []));
-            localStorage.setItem(LS_STREAK, data.streak || 0);
-            localStorage.setItem(LS_AGG_STATS, JSON.stringify(data.aggStats || {}));
-            updateStreakDisplay();
-            updateCalendar();
-            updateAggregatedStats();
-          } else {
-            console.log("Нет сохранённых данных, начинаем с пустых значений.");
-          }
-        })
-        .catch((error) => {
-          console.error("Ошибка при загрузке данных: ", error);
-        });
+    const lastDate = localStorage.getItem(LS_LAST_DATE);
+    let streak = parseInt(localStorage.getItem(LS_STREAK)) || 0;
+    if (lastDate) {
+      const yesterday = new Date();
+      yesterday.setDate(new Date().getDate() - 1);
+      const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+      streak = (lastDate === yesterdayStr) ? streak + 1 : 1;
+    } else { streak = 1; }
+    localStorage.setItem(LS_STREAK, streak);
+    localStorage.setItem(LS_LAST_DATE, today);
+    
+    let restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
+    if (!restDays.includes(today)) {
+      restDays.push(today);
+      localStorage.setItem(LS_REST_DAYS, JSON.stringify(restDays));
     }
-
+    
+    let aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
+    aggStats["Отдых"] = (aggStats["Отдых"] || 0) + 1;
+    localStorage.setItem(LS_AGG_STATS, JSON.stringify(aggStats));
+    
+    trackerMsg.textContent = "Сегодня не тренируюсь!";
+    trackerMsg.style.color = "blue";
+    
     updateStreakDisplay();
     updateCalendar();
     updateAggregatedStats();
-    loadProgress();
-  </script>
+    saveProgress();
+  });
+
+  resetTodayBtn.addEventListener('click', function() {
+    if (confirm("Вы уверены, что хотите сбросить запись за сегодня? Это действие нельзя отменить!")) {
+      const today = getLocalDateString();
+      let workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
+      let restDays = JSON.parse(localStorage.getItem(LS_REST_DAYS)) || [];
+      let aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
+      
+      if (workoutsHistory.includes(today)) {
+        for (let group in aggStats) {
+          if (group !== "Отдых" && aggStats[group] > 0) {
+            aggStats[group]--;
+            break;
+          }
+        }
+        workoutsHistory = workoutsHistory.filter(date => date !== today);
+        localStorage.setItem(LS_WORKOUTS, JSON.stringify(workoutsHistory));
+      } else if (restDays.includes(today)) {
+        restDays = restDays.filter(date => date !== today);
+        localStorage.setItem(LS_REST_DAYS, JSON.stringify(restDays));
+        if (aggStats["Отдых"]) {
+          aggStats["Отдых"] = Math.max(aggStats["Отдых"] - 1, 0);
+        }
+      } else {
+        alert("Запись за сегодня отсутствует.");
+        return;
+      }
+      localStorage.setItem(LS_AGG_STATS, JSON.stringify(aggStats));
+      localStorage.removeItem(LS_LAST_DATE);
+      trackerMsg.textContent = "Запись за сегодня сброшена.";
+      trackerMsg.style.color = "orange";
+      updateStreakDisplay();
+      updateCalendar();
+      updateAggregatedStats();
+      saveProgress();
+    }
+  });
+
+  function saveProgress() {
+    const workoutsHistory = JSON.parse(localStorage.getItem(LS_WORKOUTS)) || [];
+    const streak = localStorage.getItem(LS_STREAK) || 0;
+    const aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
+    // Сохраняем данные в узле "progress" в Realtime Database
+    set(ref(dbModule, "progress"), {
+      workoutsHistory: workoutsHistory,
+      streak: streak,
+      aggStats: aggStats
+    })
+    .then(() => { console.log("Прогресс успешно сохранён в Realtime Database"); })
+    .catch((error) => { console.error("Ошибка при сохранении прогресса: ", error); });
+  }
+
+  function loadProgress() {
+    get(child(ref(dbModule), "progress"))
+      .then((snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          localStorage.setItem(LS_WORKOUTS, JSON.stringify(data.workoutsHistory || []));
+          localStorage.setItem(LS_STREAK, data.streak || 0);
+          localStorage.setItem(LS_AGG_STATS, JSON.stringify(data.aggStats || {}));
+          updateStreakDisplay();
+          updateCalendar();
+          updateAggregatedStats();
+        } else {
+          console.log("Нет сохранённых данных, начинаем с пустых значений.");
+        }
+      })
+      .catch((error) => {
+        console.error("Ошибка при загрузке данных: ", error);
+      });
+  }
+
+  updateStreakDisplay();
+  updateCalendar();
+  updateAggregatedStats();
+  loadProgress();
+</script>
 </body>
 </html>
