@@ -58,6 +58,7 @@
       font-size: 24px;
       transition: transform 0.3s;
       color: currentColor;
+      /* По умолчанию блок свернут – кнопка повёрнута влево */
       transform: rotate(-90deg);
     }
     .day:not(.collapsed) .toggle-btn {
@@ -89,7 +90,7 @@
     button {
       cursor: pointer;
     }
-    /* Блок трекера */
+    /* Блок трекера: стрик, число тренировок и кнопки */
     #streakTracker {
       text-align: center;
     }
@@ -98,7 +99,7 @@
       margin: 10px 5px;
       font-size: 16px;
     }
-    /* Мини-календарь */
+    /* Компактный мини-календарь на полгода */
     #calendarSection {
       text-align: center;
     }
@@ -145,7 +146,7 @@
       font-size: 10px;
       text-align: center;
     }
-    /* Общая статистика */
+    /* Общая статистика по группам мышц */
     #aggregatedStatsSection {
       text-align: center;
     }
@@ -175,7 +176,7 @@
   <p id="trackerMsg" style="color: green;"></p>
 </div>
 
-<!-- Календарь -->
+<!-- Мини-календарь -->
 <div class="section" id="calendarSection">
   <h3>Календарь (полгода)</h3>
   <div id="calendar"></div>
@@ -187,7 +188,7 @@
   <ul id="aggregatedStatsList"></ul>
 </div>
 
-<!-- Тренировочные дни -->
+<!-- Блок с тренировочными днями -->
 <div id="tracker">
   <!-- День 1: Грудь -->
   <div class="day collapsed" data-day="1">
@@ -432,13 +433,9 @@
 </div>
 
 <script>
-  // Функция, возвращающая локальную дату в формате YYYY-MM-DD
+  // Функция, возвращающая локальную дату в формате YYYY-MM-DD, используя локаль en-CA
   function getLocalDateString() {
-    const d = new Date();
-    // Используем toLocaleDateString с русской локалью для получения DD.MM.YYYY
-    const localDate = d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    const parts = localDate.split('.');
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+    return new Date().toLocaleDateString('en-CA');
   }
 
   // Ключи для LocalStorage
@@ -458,7 +455,7 @@
   const calendarDiv = document.getElementById('calendar');
   const aggregatedStatsList = document.getElementById('aggregatedStatsList');
 
-  // Функция обновления отображения стрика и общего числа тренировок (учитываются только тренировочные дни)
+  // Обновление стрика и числа тренировок (учитываются только тренировочные дни)
   function updateStreakDisplay() {
     const streak = localStorage.getItem(LS_STREAK) || 0;
     streakCountElem.textContent = streak;
@@ -466,7 +463,7 @@
     totalWorkoutsElem.textContent = workoutsHistory.length;
   }
 
-  // Обновление компактного мини-календаря на полгода
+  // Обновление календаря
   function updateCalendar() {
     calendarDiv.innerHTML = "";
     const now = new Date();
@@ -512,7 +509,7 @@
         const cell = document.createElement('div');
         cell.className = 'calendar-cell';
         cell.textContent = day;
-        const dateStr = new Date(year, month, day).toISOString().slice(0,10);
+        const dateStr = new Date(year, month, day).toLocaleDateString('en-CA');
         if (workoutsHistory.includes(dateStr)) {
           cell.classList.add('done');
         }
@@ -526,7 +523,7 @@
     }
   }
 
-  // Обновление общей агрегированной статистики по группам мышц
+  // Обновление общей статистики по группам мышц
   function updateAggregatedStats() {
     aggregatedStatsList.innerHTML = "";
     const aggStats = JSON.parse(localStorage.getItem(LS_AGG_STATS)) || {};
@@ -543,7 +540,7 @@
     }
   }
 
-  // При изменении состояния чекбоксов – если отмечено хотя бы одно упражнение, блок считается выполненным
+  // Обработчик для чекбоксов
   document.querySelectorAll('.exercise-checkbox').forEach(function(checkbox) {
     checkbox.addEventListener('change', function() {
       const dayDiv = this.closest('.day');
@@ -557,7 +554,7 @@
     });
   });
 
-  // Обработчик для переключения состояния блока по клику на заголовок
+  // Обработчик клика по заголовку блока
   document.querySelectorAll('.day-header').forEach(function(header) {
     header.addEventListener('click', function() {
       const dayDiv = header.closest('.day');
@@ -593,7 +590,7 @@
     if (lastDate) {
       const yesterday = new Date();
       yesterday.setDate(new Date().getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().slice(0,10);
+      const yesterdayStr = yesterday.toLocaleDateString('en-CA');
       streak = (lastDate === yesterdayStr) ? streak + 1 : 1;
     } else {
       streak = 1;
@@ -654,7 +651,7 @@
     if (lastDate) {
       const yesterday = new Date();
       yesterday.setDate(new Date().getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().slice(0,10);
+      const yesterdayStr = yesterday.toLocaleDateString('en-CA');
       streak = (lastDate === yesterdayStr) ? streak + 1 : 1;
     } else {
       streak = 1;
